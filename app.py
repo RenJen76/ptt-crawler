@@ -4,9 +4,10 @@ from LineNotify import LineNotify
 
 if __name__ == "__main__":
 
-    message     = '基本功能測試!!'
-    # Craw        = Crawler.Crawler()
-    # print(Craw.callRequest('Lifeismoney'))
-    LineNotify  = LineNotify()
-    # print(LineNotify.token)
-    LineNotify.NotifyMessage(message)
+    lineNotify  = LineNotify() 
+    craw        = Crawler.Crawler('multiple')
+    crawResult  = craw.startCrawler()
+
+    for article in crawResult:
+        if article.get('comment') > 20:
+            lineNotify.NotifyMessage('【'+str(article.get('comment'))+'】'+article.get('title')+' '+article.get('href'))
