@@ -3,7 +3,8 @@ import json
 import time
 import threading
 import pprint
-from queue import Queue
+import configparser
+from loguru import logger
 from bs4 import BeautifulSoup 
 
 class Crawler:
@@ -15,13 +16,32 @@ class Crawler:
 
     def __init__(self, crawlerType = ''):
 
+        config = configparser.ConfigParser()
+        config.read('config/config.ini')
         self.crawlerType    = crawlerType
-        self.queue          = Queue()
+        self.loadPage       = int(config['NORMAL'].get('loadPage', 1))
 
-    def crawlerIndex(self, channel = 'MobileComm'):
+    def crawlerIndex(self, channel = 'Lifeismoney'):
+
+        articles    = []
+        requestUrl  = self.domain + "/bbs/" + channel + "/index.html"
+
+        for _ in range(0, self.loadPage):
+            logger.info('GET: ' + requestUrl)
+            articles    = articles + self.startCrawler(requestUrl)
+            sendRequest = requests.get(requestUrl)
+            soup        = BeautifulSoup(sendRequest.text,"html.parser")
+            getLastPage = soup.select(".btn.wide:nth-child(2)")
+            if len(getLastPage) != 1:
+                logger.error('無法取得索引頁面('+requestUrl+')')
+                break;
+            requestUrl  = self.domain + getLastPage[0].get('href')
+        return articles
+
+    def crawlerPage(self, crawlerUrl):
 
         index       = 0
-        sendRequest = requests.get(self.domain + "/bbs/" + channel + "/index.html")
+        sendRequest = requests.get(crawlerUrl)
         soup        = BeautifulSoup(sendRequest.text,"html.parser")
         articles    = soup.select("div.r-ent")
         result      = []
@@ -58,16 +78,15 @@ class Crawler:
         else:
             return articlesCount 
 
-    def startCrawler(self):
+    def startCrawler(self, crawlerUrl):
         start_time  = time.time()
-        index       = self.crawlerIndex('Lifeismoney')
+        index       = self.crawlerPage(crawlerUrl)
 
         if self.crawlerType=="multiple":
             for t in self.allThreads:
                 t.join()
             for key, comments in self.threadResult.items():
                 index[key]['comment'] = comments
+        end_time = time.time()
+        logger.info(f"{end_time - start_time} 秒爬取 {len(index)} 頁的文章")
         return index
-        # end_time = time.time()
-        # pprint.pprint(index)
-        # print(f"{end_time - start_time} 秒爬取 {len(index)} 頁的文章")

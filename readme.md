@@ -10,3 +10,8 @@ pip install -r requirements.txt
 `
 py app.py
 `
+
+## Configuration
+
+- **loadPage** - 設定向前撈取頁數
+- **notificationLimit** - 回覆數大於此數量即發送通知
